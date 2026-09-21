@@ -2,3 +2,4 @@ data/
 .venv/
 __pycache__/
 AMP_Scanner_Техническое_задание.md
+catboost_info/

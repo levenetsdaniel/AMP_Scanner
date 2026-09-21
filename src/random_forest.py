@@ -1,7 +1,5 @@
 import pandas as pd
-from sklearn.pipeline import make_pipeline
-from sklearn.preprocessing import StandardScaler
-from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from load_dataset import load_data
 from features_extractor import extract_features
 from sklearn.metrics import (
@@ -13,14 +11,14 @@ from sklearn.metrics import (
     confusion_matrix,
 )
 
-def train_linear_model(model, X_train: pd.DataFrame, y_train: pd.Series):
+def train_random_forest(model, X_train: pd.DataFrame, y_train: pd.Series):
     model.fit(X_train, y_train)
 
-def evaluate_linear_model(model, X_test: pd.DataFrame, y_test: pd.Series) -> float:
+def evaluate_random_forest(model, X_test: pd.DataFrame, y_test: pd.Series) -> float:
     y_prob = model.predict_proba(X_test)[:, 1]
     y_pred = model.predict(X_test)
 
-    print("Accuracy:", accuracy_score(y_test, y_pred))
+    print("\nAccuracy:", accuracy_score(y_test, y_pred))
     print("ROC-AUC:", roc_auc_score(y_test, y_prob))
     print("PR-AUC:", average_precision_score(y_test, y_prob))
     print("F1:", f1_score(y_test, y_pred))
@@ -28,14 +26,8 @@ def evaluate_linear_model(model, X_test: pd.DataFrame, y_test: pd.Series) -> flo
     print("Confusion matrix:")
     print(confusion_matrix(y_test, y_pred))
 
-def main(seed: int = 42, max_iter: int = 1000) -> None:
-    model = make_pipeline(
-        StandardScaler(),
-        LogisticRegression(
-            max_iter=max_iter,
-            random_state=seed
-        )
-    )
+def main(seed: int = 42, n_estimators: int = 100) -> None:
+    model = RandomForestClassifier(n_estimators=n_estimators, random_state=seed)
 
     train_df, test_df = load_data()
 
@@ -50,10 +42,9 @@ def main(seed: int = 42, max_iter: int = 1000) -> None:
     print("\nTrain extracted features:", X_train.shape)
     print("Test extracted features:", X_test.shape)
 
-    train_linear_model(model, X_train, y_train)
+    train_random_forest(model, X_train, y_train)
 
-    evaluate_linear_model(model, X_test, y_test)
+    evaluate_random_forest(model, X_test, y_test)
 
 if __name__ == "__main__":
     main()
-
