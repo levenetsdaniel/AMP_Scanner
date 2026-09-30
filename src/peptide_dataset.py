@@ -14,15 +14,17 @@ PAD_ID = 0
 
 class PeptideDataset(Dataset):
     def __init__(self, df: pd.DataFrame):
+        if df["seq"].isna().any() or not df["seq"].map(lambda value: isinstance(value, str)).all():
+            raise ValueError("Последовательности должны быть непустыми строками")
         self.sequences = df["seq"].str.strip().str.upper().tolist()
-        self.labels = df["y_func"].astype(int).tolist()
+        raw_labels = df["y_func"]
+        if raw_labels.isna().any() or not raw_labels.isin([0, 1]).all():
+            raise ValueError("Ожидались метки 0 и 1 без пропусков")
+        self.labels = raw_labels.astype(int).tolist()
 
         for seq in self.sequences:
             if not seq or not set(seq).issubset(VOCAB):
                 raise ValueError(f"Некорректная последовательность: {seq}")
-
-        if not set(self.labels).issubset({0, 1}):
-            raise ValueError("Ожидались метки 0 и 1")
 
     def __len__(self):
         return len(self.sequences)

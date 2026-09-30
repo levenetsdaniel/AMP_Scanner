@@ -1,5 +1,7 @@
+import torch
 import torch.nn as nn
-from peptide_dataset import *
+
+from .peptide_dataset import PAD_ID
 
 class PeptideTransformer(nn.Module):
     def __init__(
@@ -33,30 +35,21 @@ class PeptideTransformer(nn.Module):
             enable_nested_tensor=False,
         )
 
-        # decoder_layer = nn.TransformerDecoderLayer(
-        #     d_model=d_model,
-        #     nhead=nhead,
-        #     dim_feedforward=d_model * 4,
-        #     dropout=dropout,
-        #     batch_first=True,
-        #     norm_first=False,
-        # )
-        #
-        # self.decoder = nn.TransformerDecoder(
-        #     decoder_layer,
-        #     num_layers=num_layers,
-        #     enable_nested_tensor=False,
-        # )
-
         self.norm = nn.LayerNorm(d_model)
 
         self.classifier = nn.Linear(d_model, 2)
 
     def get_embeddings(self, input_ids, attention_mask):
+        if input_ids.ndim != 2 or attention_mask.shape != input_ids.shape:
+            raise ValueError("input_ids и attention_mask должны иметь одинаковую форму [batch, length]")
         batch_size, seq_len = input_ids.size()
 
-        if seq_len > self.max_len:
-            raise ValueError(f"Длина {seq_len} превышает max_len={self.max_len}")
+        if seq_len == 0 or seq_len > self.max_len:
+            raise ValueError(f"Длина должна быть от 1 до max_len={self.max_len}; получено {seq_len}")
+        if not attention_mask.bool().any(dim=1).all():
+            raise ValueError("Каждая последовательность должна содержать хотя бы один остаток")
+        if not torch.equal(attention_mask.bool(), input_ids.ne(PAD_ID)):
+            raise ValueError("attention_mask должна совпадать с непустыми токенами")
 
         positions = torch.arange(seq_len, dtype=torch.long, device=input_ids.device)
         positions = positions.unsqueeze(0).repeat(batch_size, 1)

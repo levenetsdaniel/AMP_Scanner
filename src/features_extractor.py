@@ -12,9 +12,12 @@ KD = {
 }
 
 def seq2features(sequence: str) -> np.ndarray:
+    if not isinstance(sequence, str):
+        raise ValueError("Последовательность должна быть строкой")
+    sequence = sequence.strip().upper()
     l = len(sequence)
-    if l == 0:
-        return np.zeros(24)
+    if l == 0 or not set(sequence).issubset(ACIDS):
+        raise ValueError("Нужна непустая последовательность из 20 стандартных аминокислот")
 
     features = [sequence.count(a) / l for a in ACIDS]  # 20 признаков
 

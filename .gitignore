@@ -3,3 +3,8 @@ data/
 __pycache__/
 AMP_Scanner_Техническое_задание.md
 catboost_info/
+.idea/
+.DS_Store
+.pytest_cache/
+artifacts/
+outputs/
