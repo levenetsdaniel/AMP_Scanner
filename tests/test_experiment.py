@@ -3,7 +3,7 @@ import pytest
 import torch
 
 from src.experiment import best_threshold, metrics
-from src.features_extractor import seq2features
+from src.features_extractor import FEATURE_NAMES, extract_features, seq2features
 from src.peptide_dataset import PeptideDataset, collate_peptides
 from src.peptide_transformer import PeptideTransformer
 
@@ -31,6 +31,31 @@ def test_features_reject_invalid_sequence():
         seq2features("AXD")
 
 
+def test_peptide_features_capture_charge_and_terminal_order():
+    frame = pd.DataFrame({"seq": ["KKKKKAAAAAVVVVV", "VVVVVAAAAAKKKKK"]}, index=[7, 9])
+    features = extract_features(frame, "seq")
+
+    assert features.index.tolist() == [7, 9]
+    assert features.columns.tolist() == FEATURE_NAMES
+    assert features.shape == (2, 32)
+    assert features.loc[7, "positive_frac"] == pytest.approx(1 / 3)
+    assert features.loc[7, "negative_frac"] == 0
+    assert features.loc[7, "charge_density"] == pytest.approx(1 / 3)
+    assert features.loc[7, "n_terminal_positive_frac"] == 1
+    assert features.loc[7, "c_terminal_positive_frac"] == 0
+    assert features.loc[9, "n_terminal_positive_frac"] == 0
+    assert features.loc[9, "c_terminal_positive_frac"] == 1
+    assert features.loc[7, "hydrophobic_moment_helix"] >= 0
+    assert features.notna().all().all()
+
+
+def test_short_peptide_terminal_windows_and_hydrophobic_moment():
+    features = extract_features(pd.DataFrame({"seq": ["I"]}), "seq").iloc[0]
+    assert features["n_terminal_hydrophobic_frac"] == 1
+    assert features["c_terminal_hydrophobic_frac"] == 1
+    assert features["hydrophobic_moment_helix"] == pytest.approx(4.5)
+
+
 def test_padding_does_not_change_prediction_and_empty_input_is_rejected():
     torch.manual_seed(7)
     model = PeptideTransformer().eval()
@@ -55,4 +80,3 @@ def test_collate_mask_and_gradient():
     loss.backward()
     assert model.token_embedding.weight.grad[0].abs().sum() == 0
     assert model.token_embedding.weight.grad[1].abs().sum() > 0
-

@@ -299,6 +299,7 @@ def main():
 
     output = args.output or OUTPUT_ROOT / ("simple" if args.dataset == "amplify" else "pepanno")
     train, val, test = load_frames(args.dataset)
+    # train, val, test = load_frames("pepanno")
 
     if args.command in ("run", "train-baselines"):
         train_baselines(train, val, output)
