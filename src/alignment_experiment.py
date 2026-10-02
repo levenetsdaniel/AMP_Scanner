@@ -115,7 +115,7 @@ def knn_probabilities(ids: np.ndarray, similarities: np.ndarray, reference_label
 def run_experiment(train: pd.DataFrame, val: pd.DataFrame, test: pd.DataFrame,
                    output: Path, candidate_count: int = 64,
                    modes: tuple[str, ...] = ("global", "local"),
-                   retrieval: str = "esm2", batch_size: int = 16,
+                   retrieval: str = "dipeptide", batch_size: int = 16,
                    device_name: str = "auto", checkpoint: Path | None = None) -> pd.DataFrame:
     references = train["seq"].tolist()
     labels = train["y_func"].to_numpy()
@@ -211,7 +211,8 @@ def main():
     parser.add_argument("--output", type=Path)
     parser.add_argument("--candidates", type=int, default=64)
     parser.add_argument("--mode", choices=["global", "local", "both"], default="both")
-    parser.add_argument("--retrieval", choices=["esm2", "transformer", "dipeptide"], default="esm2")
+    parser.add_argument("--retrieval", choices=["dipeptide", "esm2", "transformer"],
+                        default="dipeptide")
     parser.add_argument("--batch-size", type=int, default=16)
     parser.add_argument("--device", choices=["auto", "cpu", "mps", "cuda"], default="auto")
     parser.add_argument("--checkpoint", type=Path)

@@ -47,9 +47,10 @@ def test_alignment_experiment_writes_separate_results(tmp_path):
                          "y_func": [0, 1]})
 
     report = run_experiment(train, val, test, tmp_path, candidate_count=4,
-                            modes=("global", "local"), retrieval="dipeptide")
+                            modes=("global", "local"))
 
     assert report.loc[0, "roc_auc"] == 1
+    assert report.loc[0, "retrieval"] == "dipeptide"
     assert (tmp_path / "validation_metrics.csv").exists()
     assert (tmp_path / "metrics.csv").exists()
     predictions = pd.read_csv(tmp_path / "predictions.csv")
