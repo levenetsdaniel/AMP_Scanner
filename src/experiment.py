@@ -31,6 +31,7 @@ from .features_extractor import extract_features
 from .load_dataset import load_data
 from .peptide_dataset import PeptideDataset, VOCAB, collate_peptides
 from .peptide_transformer import PeptideTransformer
+from .similarity_split import grouped_train_val_split
 
 
 SEED = 42
@@ -40,11 +41,19 @@ MODEL_CONFIG = {"vocab_size": len(VOCAB) + 1, "d_model": 128, "nhead": 4,
                 "num_layers": 2, "max_len": 512, "dropout": 0.1}
 
 
-def load_frames(dataset="amplify"):
+def load_frames(dataset="amplify", split="random", similarity_threshold=0.6):
     raw_train, test = load_data(dataset)
     train_source = raw_train.drop_duplicates(subset="seq").reset_index(drop=True)
-    train, val = train_test_split(train_source, test_size=0.2,
-                                  random_state=SEED, stratify=train_source["y_func"])
+    if split == "random":
+        train, val = train_test_split(train_source, test_size=0.2,
+                                      random_state=SEED, stratify=train_source["y_func"])
+    elif split == "grouped":
+        train, val, groups = grouped_train_val_split(
+            train_source, threshold=similarity_threshold, seed=SEED)
+        print(f"Grouped split: {len(set(groups))} групп, train={len(train)}, "
+              f"validation={len(val)}, порог сходства={similarity_threshold}")
+    else:
+        raise ValueError("split должен быть random или grouped")
 
     return train.reset_index(drop=True), val.reset_index(drop=True), test
 
@@ -287,6 +296,8 @@ def main():
     parser.add_argument("command", nargs="?", default="run",
                         choices=["run", "train-baselines", "train-transformer", "train-esm", "evaluate"])
     parser.add_argument("--dataset", choices=["amplify", "pepanno"], default="amplify")
+    parser.add_argument("--split", choices=["random", "grouped"], default="random")
+    parser.add_argument("--similarity-threshold", type=float, default=0.6)
     parser.add_argument("--output", type=Path)
     parser.add_argument("--epochs", type=int, default=15)
     parser.add_argument("--batch-size", type=int, default=32)
@@ -297,9 +308,14 @@ def main():
     if args.epochs < 1 or args.batch_size < 1:
         parser.error("--epochs и --batch-size должны быть положительными")
 
-    output = args.output or OUTPUT_ROOT / ("simple" if args.dataset == "amplify" else "pepanno")
-    train, val, test = load_frames(args.dataset)
-    # train, val, test = load_frames("pepanno")
+    if args.split == "grouped" and not 0 < args.similarity_threshold < 1:
+        parser.error("--similarity-threshold должен быть между 0 и 1")
+
+    default_output = "simple" if args.dataset == "amplify" else "pepanno"
+    if args.split == "grouped":
+        default_output += "_grouped"
+    output = args.output or OUTPUT_ROOT / default_output
+    train, val, test = load_frames(args.dataset, args.split, args.similarity_threshold)
 
     if args.command in ("run", "train-baselines"):
         train_baselines(train, val, output)
